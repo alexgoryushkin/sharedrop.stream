@@ -35,9 +35,9 @@ The main difference between ShareDrop and AirDrop is that ShareDrop requires Int
 ## Local development
 
 1.  Setup Firebase:
-    1.  [Sign up](https://www.firebase.com) for a Firebase account and create a database.
-    2.  Go to "Security Rules" tab, click "Load Rules" button and select `firebase_rules.json` file.
-    3.  Take note of your database URL and its secret, which can be found in "Secrets" tab.
+    1.  [Sign up](https://www.firebase.com) for a Firebase account and create `Realtime Database`.
+    2.  Go to "Rules" tab, replace existing content by content from `firebase_rules.json` file.
+    3.  Take note of your database URL and its secret, which can be found in "Project settings" > "Service accounts" > "Database Secrets" tab.
 2.  Run `npm install -g ember-cli` to install Ember CLI.
 3.  Run `yarn` to install app dependencies.
 4.  Run `cp .env{.sample,}` to create `.env` file. This file will be used by Foreman to set environment variables when running the app locally.
