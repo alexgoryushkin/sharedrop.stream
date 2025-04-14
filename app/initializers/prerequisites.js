@@ -1,16 +1,34 @@
 /* jshint -W030 */
 import $ from 'jquery';
-import { Promise } from 'rsvp';
+import {Promise} from 'rsvp';
 import config from 'sharedrop/config/environment';
+import {initializeApp} from 'firebase/app';
+import {getAuth, signInWithCustomToken} from 'firebase/auth';
+import {getDatabase} from 'firebase/database';
 
 import FileSystem from '../services/file';
 import Analytics from '../services/analytics';
+
+const firebaseConfig = {
+  apiKey: config.FIREBASE_API_KEY,
+  authDomain: config.FIREBASE_AUTH_DOMAIN,
+  databaseURL: config.FIREBASE_DATABASE_URL,
+  projectId: config.FIREBASE_PROJECT_ID,
+  storageBucket: config.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: config.FIREBASE_MESSAGING_SENDER_ID,
+  appId: config.FIREBASE_APP_ID
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
 
 export function initialize(application) {
   function checkWebRTCSupport() {
     return new Promise((resolve, reject) => {
       // window.util is a part of PeerJS library
       if (window.util.supports.sctp) {
+        console.log('WebRTC supported')
         resolve();
       } else {
         // eslint-disable-next-line prefer-promise-reject-errors
@@ -35,24 +53,31 @@ export function initialize(application) {
 
   function authenticateToFirebase() {
     return new Promise((resolve, reject) => {
-      const xhr = $.getJSON('/auth');
-      xhr.then((data) => {
-        const ref = new window.Firebase(config.FIREBASE_URL);
-        // eslint-disable-next-line no-param-reassign
-        application.ref = ref;
-        // eslint-disable-next-line no-param-reassign
-        application.userId = data.id;
-        // eslint-disable-next-line no-param-reassign
-        application.publicIp = data.public_ip;
-
-        ref.authWithCustomToken(data.token, (error) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve();
+      $.getJSON('/auth')
+        .then((data) => {
+          if (!data || !data.token) {
+            reject(new Error('Invalid data from /auth'));
+            return;
           }
+
+          signInWithCustomToken(auth, data.token)
+            .then((userCredential) => {
+              const user = userCredential.user;
+              application.db = db;
+              application.userId = data.id;
+              application.publicIp = data.public_ip;
+
+              resolve();
+            })
+            .catch((error) => {
+              console.error('Firebase auth error:', error);
+              reject(error);
+            });
+        })
+        .catch((xhrError) => {
+          console.error('Error fetching /auth:', xhrError);
+          reject(xhrError);
         });
-      });
     });
   }
 

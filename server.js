@@ -14,22 +14,26 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const compression = require('compression');
-const { v4: uuidv4 } = require('uuid');
+const {v4: uuidv4} = require('uuid');
 const crypto = require('crypto');
-const FirebaseTokenGenerator = require('firebase-token-generator');
-
-const firebaseTokenGenerator = new FirebaseTokenGenerator(
-  process.env.FIREBASE_SECRET,
-);
 const app = express();
 const secret = process.env.SECRET;
 const base = ['dist'];
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin SDK
+const serviceAccount = require(path.resolve(__dirname, 'firebase_admin.json'));
+console.log(serviceAccount, process.env.FIREBASE_DATABASE_URL)
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: process.env.FIREBASE_DATABASE_URL
+});
 
 app.enable('trust proxy');
 
 app.use(logger('combined'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(
   cookieSession({
@@ -65,7 +69,6 @@ base.forEach((dir) => {
 //
 app.get('/', (req, res) => {
   const root = path.join(__dirname, base[0]);
-  console.log({ root });
   res.sendFile(`${root}/index.html`);
 });
 
@@ -78,18 +81,20 @@ app.get('/room', (req, res) => {
   const ip = req.headers['cf-connecting-ip'] || req.ip;
   const name = crypto.createHmac('md5', secret).update(ip).digest('hex');
 
-  res.json({ name });
+  res.json({name});
 });
 
-app.get('/auth', (req, res) => {
+app.get('/auth', async (req, res) => {
   const ip = req.headers['cf-connecting-ip'] || req.ip;
   const uid = uuidv4();
-  const token = firebaseTokenGenerator.createToken(
-    { uid, id: uid }, // will be available in Firebase security rules as 'auth'
-    { expires: 32503680000 }, // 01.01.3000 00:00
-  );
 
-  res.json({ id: uid, token, public_ip: ip });
+  try {
+    const customToken = await admin.auth().createCustomToken(uid, {id: uid});
+    res.json({id: uid, token: customToken, public_ip: ip});
+  } catch (error) {
+    console.error('Error creating custom token:', error);
+    res.status(500).json({error: 'Failed to create custom token'});
+  }
 });
 
 http

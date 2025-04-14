@@ -61,7 +61,7 @@ export default Route.extend({
     $.subscribe('file_sent.p2p', ctrl._onPeerP2PFileSent.bind(ctrl));
 
     // Join the room
-    const room = new Room(model, window.Sharedrop.ref);
+    const room = new Room(model, window.Sharedrop.db);
     room.join(ctrl.get('you').serialize());
     ctrl.set('room', room);
   },

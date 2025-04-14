@@ -1,6 +1,7 @@
 import Controller, { inject as controller } from '@ember/controller';
 import { alias } from '@ember/object/computed';
 import $ from 'jquery';
+import { ref, push, child, onValue, onDisconnect, onChildAdded, onChildRemoved, onChildChanged } from 'firebase/database';
 
 import WebRTC from '../services/web-rtc';
 import Peer from '../models/peer';
@@ -25,9 +26,11 @@ export default Controller.extend({
       'webrtc',
       new WebRTC(you.get('uuid'), {
         room: room.name,
-        firebaseRef: window.Sharedrop.ref,
+        db: window.Sharedrop.db,
+        firebaseStuff: {ref, push, child, onValue, onDisconnect, onChildAdded, onChildRemoved, onChildChanged}
       }),
     );
+    console.log('WebRTC initialized')
   },
 
   _onRoomDisconnected() {

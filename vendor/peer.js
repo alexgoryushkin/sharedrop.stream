@@ -456,23 +456,21 @@ Peer.prototype._initialize = function (id) {
   this.id = id;
 
   // Firebase
-  this._ref = this.options.firebaseRef;
-  this._connectionRef = this._ref.child('.info/connected');
-  this._messagesRef = this._ref.child('rooms/' + this.options.room + '/messages');
-  this._receivedMessagesRef = this._messagesRef.child(id);
+  this.db = this.options.db;
+  this._connectionRef = this.options.firebaseStuff.ref(this.db, '.info/connected');
+  this._messagesRef = this.options.firebaseStuff.ref(this.db, `rooms/${this.options.room}/messages`);
+  this._receivedMessagesRef = this.options.firebaseStuff.ref(this.db, `rooms/${this.options.room}/messages/${id}`);
 
-  this._connectionRef.on('value', (connectionSnapshot) => {
+  this.options.firebaseStuff.onValue(this._connectionRef, (connectionSnapshot) => {
     if (connectionSnapshot.val() === true) {
       // Remove received messages on disconnect
-      this._receivedMessagesRef.onDisconnect().remove();
+      this.options.firebaseStuff.onDisconnect(this._receivedMessagesRef).remove();
 
       // Listen to incoming messages
-      this._receivedMessagesRef.on('child_added', (snapshot) => {
+      this.options.firebaseStuff.onChildAdded(this._receivedMessagesRef, (snapshot) => {
         const message = snapshot.val();
         this._handleMessage(message);
       });
-    } else {
-      this._receivedMessagesRef.off();
     }
   });
 
@@ -1091,16 +1089,19 @@ Negotiator._setupListeners = function(connection, pc) {
       var c = evt.candidate,
           candidate = 'toJSON' in c ? c.toJSON() : c;
 
-      provider._messagesRef.child(dst).push({
-        type: 'CANDIDATE',
-        payload: {
-          candidate: candidate,
-          type: connection.type,
-          connectionId: connectionId
-        },
-        src: src,
-        dst: dst
-      });
+      provider.options.firebaseStuff.push(
+        provider.options.firebaseStuff.child(provider._messagesRef, dst),
+        {
+          type: 'CANDIDATE',
+          payload: {
+            candidate: candidate,
+            type: connection.type,
+            connectionId: connectionId
+          },
+          src: src,
+          dst: dst
+        }
+      );
     }
   };
 
@@ -1114,16 +1115,19 @@ Negotiator._setupListeners = function(connection, pc) {
         error = new Error("ICE connection state is 'failed'");
         error.type = 'failed';
 
-        connection.provider._messagesRef.child(dst).push({
-          type: 'ERROR',
-          payload: {
-            message: error.message,
-            type: error.type,
-            connectionId: connectionId
-          },
-          src: src,
-          dst: dst
-        });
+        connection.provider.options.firebaseStuff.push(
+          connection.provider.options.firebaseStuff.child(connection.provider._messagesRef, dst),
+          {
+            type: 'ERROR',
+            payload: {
+              message: error.message,
+              type: error.type,
+              connectionId: connectionId
+            },
+            src: src,
+            dst: dst
+          }
+        );
 
         connection.emit('error', error);
         connection.close();
@@ -1208,22 +1212,25 @@ Negotiator._makeOffer = function(connection) {
         offer = 'toJSON' in o ? o.toJSON() : o;
 
         util.log('Set localDescription: offer', 'for:', dst);
-        connection.provider._messagesRef.child(dst).push({
-          type: 'OFFER',
-          payload: {
-            sdp: offer,
-            type: connection.type,
-            label: connection.label,
-            connectionId: connection.id,
-            reliable: connection.reliable,
-            serialization: connection.serialization,
-            metadata: connection.metadata,
-            browser: util.browser
-          },
-          src: src,
-          dst: dst
-        });
-      })
+          connection.provider.options.firebaseStuff.push(
+            connection.provider.options.firebaseStuff.child(connection.provider._messagesRef, dst),
+            {
+              type: 'OFFER',
+              payload: {
+                sdp: offer,
+                type: connection.type,
+                label: connection.label,
+                connectionId: connection.id,
+                reliable: connection.reliable,
+                serialization: connection.serialization,
+                metadata: connection.metadata,
+                browser: util.browser
+              },
+              src: src,
+              dst: dst
+            }
+          );
+        })
       .catch(function (err) {
         connection.provider.emit('error', err);
         util.log('Failed to setLocalDescription, ', err);
@@ -1254,17 +1261,20 @@ Negotiator._makeAnswer = function(connection) {
         answer = 'toJSON' in a ? a.toJSON() : a;
 
         util.log('Set localDescription: answer', 'for:', dst);
-        provider._messagesRef.child(dst).push({
-          type: 'ANSWER',
-          payload: {
-            sdp: answer,
-            type: connection.type,
-            connectionId: connection.id,
-            browser: util.browser
-          },
-          src: src,
-          dst: dst
-        });
+        provider.options.firebaseStuff.push(
+          provider.options.firebaseStuff.child(provider._messagesRef, dst),
+          {
+            type: 'ANSWER',
+            payload: {
+              sdp: answer,
+              type: connection.type,
+              connectionId: connection.id,
+              browser: util.browser
+            },
+            src: src,
+            dst: dst
+          }
+        );
       })
       .catch(function(err) {
         connection.provider.emit('error', err);

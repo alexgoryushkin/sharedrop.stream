@@ -1,8 +1,19 @@
 import $ from 'jquery';
+import {
+  ref,
+  onValue,
+  onDisconnect,
+  set,
+  onChildAdded,
+  onChildRemoved,
+  onChildChanged,
+  update,
+  remove
+} from 'firebase/database';
 
 // TODO: use Ember.Object.extend()
-const Room = function (name, firebaseRef) {
-  this._ref = firebaseRef;
+const Room = function (name, db) {
+  this.db = db;
   this.name = name;
 };
 
@@ -10,43 +21,41 @@ Room.prototype.join = function (user) {
   const self = this;
 
   // Setup Firebase refs
-  self._connectionRef = self._ref.child('.info/connected');
-  self._roomRef = self._ref.child(`rooms/${this.name}`);
-  self._usersRef = self._roomRef.child('users');
-  self._userRef = self._usersRef.child(user.uuid);
+  self._connectionRef = ref(self.db, '.info/connected');
+  self._roomRef = ref(self.db, `rooms/${this.name}`);
+  self._usersRef = ref(self.db, `rooms/${this.name}/users`);
+  self._userRef = ref(self.db, `rooms/${this.name}/users/${user.uuid}`);
 
   console.log('Room:\t Connecting to: ', this.name);
 
-  self._connectionRef.on('value', (connectionSnapshot) => {
+  onValue(self._connectionRef, (connectionSnapshot) => {
     // Once connected (or reconnected) to Firebase
     if (connectionSnapshot.val() === true) {
       console.log('Firebase: (Re)Connected');
 
       // Remove yourself from the room when disconnected
-      self._userRef.onDisconnect().remove();
+      onDisconnect(self._userRef).remove();
 
       // Join the room
-      self._userRef.set(user, (error) => {
-        if (error) {
-          console.warn('Firebase: Adding user to the room failed: ', error);
-        } else {
+      set(self._userRef, user)
+        .then(() => {
           console.log('Firebase: User added to the room');
           // Create a copy of user data,
           // so that deleting properties won't affect the original variable
           $.publish('connected.room', $.extend(true, {}, user));
-        }
-      });
+        })
+        .catch((error) => {
+          console.warn('Firebase: Adding user to the room failed: ', error);
+        });
 
-      self._usersRef.on('child_added', (userAddedSnapshot) => {
+      onChildAdded(self._usersRef, (userAddedSnapshot) => {
         const addedUser = userAddedSnapshot.val();
 
         console.log('Room:\t user_added: ', addedUser);
         $.publish('user_added.room', addedUser);
       });
 
-      self._usersRef.on(
-        'child_removed',
-        (userRemovedSnapshot) => {
+      onChildRemoved(self._usersRef, (userRemovedSnapshot) => {
           const removedUser = userRemovedSnapshot.val();
 
           console.log('Room:\t user_removed: ', removedUser);
@@ -55,10 +64,9 @@ Room.prototype.join = function (user) {
         () => {
           // Handle case when the whole room is removed from Firebase
           $.publish('disconnected.room');
-        },
-      );
+        });
 
-      self._usersRef.on('child_changed', (userChangedSnapshot) => {
+      onChildChanged(self._usersRef, (userChangedSnapshot) => {
         const changedUser = userChangedSnapshot.val();
 
         console.log('Room:\t user_changed: ', changedUser);
@@ -68,7 +76,6 @@ Room.prototype.join = function (user) {
       console.log('Firebase: Disconnected');
 
       $.publish('disconnected.room');
-      self._usersRef.off();
     }
   });
 
@@ -76,12 +83,10 @@ Room.prototype.join = function (user) {
 };
 
 Room.prototype.update = function (attrs) {
-  this._userRef.update(attrs);
+  update(this._userRef, attrs);
 };
 
 Room.prototype.leave = function () {
-  this._userRef.remove();
-  this._usersRef.off();
+  remove(this._userRef);
 };
-
 export default Room;
