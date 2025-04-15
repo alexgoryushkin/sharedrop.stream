@@ -20,7 +20,6 @@ module.exports = function (environment) {
       // when it is created
     },
 
-    FIREBASE_URL: process.env.FIREBASE_URL,
     FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
     FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
     FIREBASE_DATABASE_URL: process.env.FIREBASE_DATABASE_URL,
@@ -29,6 +28,7 @@ module.exports = function (environment) {
     FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
     FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
     FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID,
+    SENTRY_ERROR_TRACKER_URL: process.env.SENTRY_ERROR_TRACKER_URL,
 
     exportApplicationGlobal: true,
   };

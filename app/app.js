@@ -5,10 +5,13 @@ import config from 'sharedrop/config/environment';
 import * as Sentry from '@sentry/browser';
 import {Ember as EmberIntegration} from '@sentry/integrations';
 
-Sentry.init({
-  dsn: "https://0e3e53aff3f6bab711aa6fd280267704@o4509149437231104.ingest.de.sentry.io/4509149439852624",
-  integrations: [new EmberIntegration()],
-});
+if (config.SENTRY_ERROR_TRACKER_URL) {
+  Sentry.init({
+    dsn: config.SENTRY_ERROR_TRACKER_URL,
+    integrations: [new EmberIntegration()],
+  });
+}
+
 
 export default class App extends Application {
   modulePrefix = config.modulePrefix;
