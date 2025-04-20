@@ -21,7 +21,7 @@
     sizes="196x196"
     href="{{rootURL}}assets/images/sharedrop-icon.png"
     />
-    
+
     {{content-for "head"}}
 
     <link integrity="" rel="stylesheet" href="{{rootURL}}assets/vendor.css" />
@@ -35,7 +35,20 @@
   </head>
 
   <body>
-    <div class="preloader"><span>Loading...</span></div>
+    <noscript>
+      <style>
+        .preloaderMessage { display: none; }
+        .js-message {
+          text-align: center;
+          padding: 20px;
+          font-family: sans-serif;
+          font-size: medium;
+          color: #cc0000;
+        }
+      </style>
+      <div class="js-message">⚠️ Please enable JavaScript to work with the site</div>
+    </noscript>
+    <div class="preloader"><span class="preloaderMessage">Loading...</span></div>
 
     {{content-for "body"}}
 
