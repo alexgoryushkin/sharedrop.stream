@@ -4,10 +4,10 @@
   "version": "1",
   "app": {
     "urls": [
-      "https:/www.sharedrop.io/"
+      "https://sharedrop.stream"
     ],
     "launch": {
-      "web_url": "https:/www.sharedrop.io/"
+      "web_url": "https://sharedrop.stream"
     }
   },
   "icons": {
