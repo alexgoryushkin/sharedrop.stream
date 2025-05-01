@@ -1,4 +1,37 @@
 {{#modal-dialog onClose=(action "closeModal" target=currentRoute)}}
+  <script>
+    function copyValueToClipboard() {
+      const input = document.querySelector('.room-url');
+      if (!input) {
+        console.error('Input not found');
+        return;
+      }
+      const value = input.value;
+
+      const clipboardButton = document.querySelector('.clipboard');
+      if (!clipboardButton) {
+        console.error('Clipboard button not found');
+        return;
+      }
+
+      if (navigator.clipboard) {
+        navigator.clipboard
+          .writeText(value)
+          .then(() => {
+            console.log('Value copied to clipboard:', value);
+            clipboardButton.classList.add('active');
+            setTimeout(() => {
+              clipboardButton.classList.remove('active');
+            }, 1000);
+          })
+          .catch((error) => {
+            console.error('Failed to copy value to clipboard:', error);
+          });
+      } else {
+        console.error('Clipboard API is not supported in this browser');
+      }
+    }
+  </script>
   <h2 class="logo"><span>ShareDrop</span></h2>
   <h3>Share files between devices in different networks</h3>
 
@@ -8,6 +41,7 @@
 
   <p>
     {{room-url value=currentUrl readonly="readonly" style="display: block; margin: auto;"}}
+    <button onclick="copyValueToClipboard()" class="clipboard" type="button"></button>
   </p>
 
   <p>
@@ -24,7 +58,8 @@
   </p>
 
   <p>
-    Drag and drop a file directly on other person's avatar or click the avatar and select the file you want to send. The file transfer will start once the recipient accepts the file.
+    Drag and drop a file directly on other person's avatar or click the avatar and select the file you want to send.
+    The file transfer will start once the recipient accepts the file.
   </p>
 
   <div class="actions">
